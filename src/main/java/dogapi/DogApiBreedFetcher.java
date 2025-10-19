@@ -35,5 +35,28 @@ public class DogApiBreedFetcher implements BreedFetcher {
                 .url("https://dog.ceo/api/breed/" + normalized + "/list")
                 .build();
 
+        try (Response response = client.newCall(request).execute()) {
+            if (!response.isSuccessful() || response.body() == null) {
+                throw new BreedNotFoundException("Failed to fetch sub-breeds for '" + breed + "'.");
+            }
+
+            String body = response.body().string();
+            JSONObject json = new JSONObject(body);
+
+            if (!"success".equalsIgnoreCase(json.optString("status"))) {
+                String apiMsg = json.optString("message", "Unknown API error");
+                throw new BreedNotFoundException("API error for '" + breed + "': " + apiMsg);
+            }
+
+            JSONArray arr = json.getJSONArray("message");
+            List<String> result = new ArrayList<>(arr.length());
+            for (int i = 0; i < arr.length(); i++) {
+                result.add(arr.getString(i));
+            }
+            return result;
+        } catch (Exception e) {
+            throw new BreedNotFoundException("Unable to fetch sub-breeds for '" + breed + "'.");
+        }
+
     }
 }
